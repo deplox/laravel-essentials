@@ -84,3 +84,31 @@ test('ModelPrinciple reflects requireMorphMap toggle', function (): void {
 
     expect(ModelPrinciple::status()['requireMorphMap'])->toBeFalse();
 });
+
+test('HttpPrinciple does not apply fakeSleep or preventStrayRequests in production', function (): void {
+    Sleep::fake(false);
+    Http::preventStrayRequests(false);
+
+    app()->detectEnvironment(fn (): string => 'production');
+
+    HttpPrinciple::apply(\Deplox\Essentials\EssentialsConfig::fromArray([
+        'fake_sleep' => true,
+        'prevent_stray_requests' => true,
+        'force_https' => false,
+        'aggressive_prefetching' => false,
+        'immutable_dates' => false,
+        'unguard_model' => false,
+        'strict_model' => false,
+        'automatic_eager_load_relationships' => false,
+        'require_morph_map' => false,
+        'prohibit_destructive_commands' => false,
+        'set_default_passwords' => false,
+        'default_string_length' => 255,
+        'default_morph_key_type' => 'int',
+    ]));
+
+    expect(HttpPrinciple::status()['fakeSleep'])->toBeFalse()
+        ->and(HttpPrinciple::status()['preventStrayRequests'])->toBeFalse();
+
+    app()->detectEnvironment(fn (): string => 'testing');
+});

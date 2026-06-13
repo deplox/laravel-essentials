@@ -16,23 +16,17 @@ final class HttpPrinciple
 {
     public static function apply(EssentialsConfig $config): void
     {
-        /**
-         * Configures Laravel Sleep Facade to be faked.
-         * Avoid unexpected sleep during testing cases.
-         */
-        Sleep::fake($config->fakeSleep);
+        // Sleep::fake and preventStrayRequests are test utilities — never apply in production.
+        if (! app()->isProduction()) {
+            Sleep::fake($config->fakeSleep);
+            Http::preventStrayRequests($config->preventStrayRequests);
+        }
 
         /**
          * Forces all generated URLs to use `https://`.
          * Ensures all traffic uses secure connections by default.
          */
         URL::forceHttps($config->forceHttps);
-
-        /**
-         * Configures Laravel Http Facade to prevent stray requests.
-         * Ensure every HTTP calls during tests have been explicitly faked.
-         */
-        Http::preventStrayRequests($config->preventStrayRequests);
 
         /**
          * Configures Laravel Vite to preload assets more aggressively.
