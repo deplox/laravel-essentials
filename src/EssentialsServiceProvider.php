@@ -9,7 +9,6 @@ use Deplox\Essentials\Database\Commands\DbDropCommand;
 use Deplox\Essentials\Database\Commands\DbMakeCommand;
 use Deplox\Essentials\Database\Commands\DbWaitCommand;
 use Deplox\Essentials\Dogma\DogmaManager;
-use Deplox\Essentials\Overseer\OverseerManager;
 use Illuminate\Support\ServiceProvider;
 use Override;
 
@@ -21,8 +20,6 @@ final class EssentialsServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__.'/../config/essentials.php', 'essentials'
         );
-
-        $this->app->singleton('overseer', fn ($app): OverseerManager => new OverseerManager($app));
     }
 
     /**
