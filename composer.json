@@ -3,6 +3,7 @@
     "name": "deplox/laravel-essentials",
     "type": "library",
     "description": "Opinionated defaults for Laravel projects.",
+    "keywords": ["laravel", "defaults", "configuration", "middleware", "dogma", "strict", "opinionated"],
     "license": "MIT",
     "authors": [
         {

@@ -9,7 +9,6 @@ Laravel ships with sensible-but-permissive defaults. `laravel-essentials` opts a
 - **Dogma** — applies opinionated framework configuration on every boot (immutable dates, strict models, morph-map enforcement, automatic eager loading, password defaults, etc.)
 - **Middleware** — request IDs, security headers, structured request logging, HTTPS redirects, CSP
 - **Database commands** — `db:make`, `db:drop`, `db:wait`, `health` for orchestrated deployments
-- **Overseer** — runtime introspection of providers, bindings, routes, aliases (useful for diagnostics, `/admin` panels, and tests)
 - **Throttler** — small wrapper around Laravel's `RateLimiter` for per-key attempt limiting
 
 Everything is opt-out via config — set a key to `false` and the relevant principle stops applying. Nothing is forced on the application beyond what's in `config/essentials.php`.
@@ -216,38 +215,6 @@ The actual schema work lives in `Database\Actions\CreateDatabase` and `Database\
 
 ---
 
-## Overseer — application introspection
-
-`Overseer\OverseerManager` aggregates eight inspectors that read the live container, router, and environment. Bound as the `'overseer'` singleton in the service provider; access via the `Overseer` facade for ergonomics.
-
-```php
-use Deplox\Essentials\Facades\Overseer;
-
-Overseer::environment();   // PHP, Laravel, Composer, DB versions
-Overseer::providers();     // registered/deferred providers + what they provide
-Overseer::aliases();       // container aliases
-Overseer::bindings();      // bindings with resolved/singleton flags
-Overseer::instances();     // cached singleton instances
-Overseer::extenders();     // container extend() callbacks
-Overseer::router();        // every route with method, URI, action, middleware
-Overseer::inspect();       // all of the above as a Collection
-```
-
-### Inspectors
-
-Eight classes under `Overseer\Inspectors` — `EnvironmentInspector`, `ProvidersInspector`, `AliasesInspector`, `BindingsInspector`, `InstancesInspector`, `ExtendersInspector`, `RouterInspector`. Each takes the `Application` and returns an array. The base `Inspector` class is a thin abstract template — adding a new inspector is one class plus a method on `OverseerManager`.
-
-`RouterInspector` is the heaviest — it normalises closures (`'closure'`), invokables (FQCN), and view/redirect responses, expands middleware aliases, and includes scope bindings, defaults, and lock metadata.
-
-### Where Overseer pays off
-
-- Diagnostics endpoints (`GET /admin/system`)
-- Architecture tests (`expect(Overseer::providers())->toHaveKey(...)`)
-- Generated API docs and admin panels
-- Debugging "why is my container resolving X?" without `dd($app)` recursion blow-ups
-
----
-
 ## Throttler
 
 A small fluent wrapper around `Illuminate\Cache\RateLimiter`. Lives at `Utilities\Throttler`.
@@ -287,7 +254,6 @@ Pest 4. Tests in `tests/Feature/`:
 - **Middleware** — construct a `Request`, call `$middleware->handle($request, fn ($r) => new Response)`, assert headers / `Context` state / log spies.
 - **Commands** — `$this->artisan(DbWaitCommand::class, [...])->assertSuccessful()` and friends; the package patterns also assert `Isolatable`, `Confirmable`, and `Prohibitable` interfaces are present.
 - **Dogma** — a `dogmaConfig(array $overrides = [])` helper builds an `EssentialsConfig` per test; assert `DogmaManager::status()` reflects the overrides.
-- **Overseer** — assertions against the array structure of each inspector method; the router inspector test seeds known routes and asserts they appear with the expected shape.
 - **Throttler** — exercises the full state machine (`hit` → `tooManyAttempts` → `availableIn` → `clear` → `resetAttempts`).
 
 Several principles touch global state. The tests use `beforeEach()`/`afterEach()` blocks to reset framework defaults (e.g., `Model::unguard(false)` after a test that flipped it).
@@ -316,17 +282,12 @@ src/
 │       ├── HttpPrinciple.php
 │       ├── ModelPrinciple.php
 │       └── Principle.php           # abstract base
-├── Facades/
-│   └── Overseer.php
 ├── Middlewares/
 │   ├── ContentSecurityPolicy.php
 │   ├── ForceHttps.php
 │   ├── LogRequests.php
 │   ├── UseHeaderGuards.php
 │   └── UseRequestId.php
-├── Overseer/
-│   ├── Inspectors/                 # 8 inspectors
-│   └── OverseerManager.php
 ├── Utilities/
 │   └── Throttler.php
 ├── EssentialsConfig.php
