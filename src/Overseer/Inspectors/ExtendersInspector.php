@@ -13,7 +13,7 @@ final class ExtendersInspector
 {
     /**
      * @param  \Illuminate\Foundation\Application  $app
-     * @return array<string>
+     * @return array<string, int>
      */
     public function inspect(Application $app): array
     {

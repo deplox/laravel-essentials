@@ -23,6 +23,6 @@ final class InstancesInspector
             return [];
         }
 
-        return Arr::map($property->getValue($app), fn ($instance) => is_object($instance) ? get_class($instance) : $instance);
+        return Arr::map($property->getValue($app), fn ($instance) => is_object($instance) ? $instance::class : $instance);
     }
 }

@@ -16,7 +16,7 @@ final class EnvironmentInspector
      */
     public function inspect(Application $app): array
     {
-        /** @var Illuminate\Support\Composer */
+        /** @var \Illuminate\Support\Composer */
         $composer = $app->make(\Illuminate\Support\Composer::class);
 
         return [

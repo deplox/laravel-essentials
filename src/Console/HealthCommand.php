@@ -30,8 +30,11 @@ final class HealthCommand extends Command
 
                 return $cache->get($key) === '1';
             },
-            'queue' => fn (): bool => $queue->connection()->getConnectionName() !== null
-                || $queue->connection() !== null,
+            'queue' => function () use ($queue): bool {
+                $queue->connection();
+
+                return true;
+            },
         ];
 
         $allOk = true;

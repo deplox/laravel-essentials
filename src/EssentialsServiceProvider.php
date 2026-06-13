@@ -15,11 +15,6 @@ use Override;
 
 final class EssentialsServiceProvider extends ServiceProvider
 {
-    /**
-     * @var \Illuminate\Foundation\Application|\Illuminate\Contracts\Foundation\Application
-     */
-    protected $app;
-
     #[Override]
     public function register(): void
     {
