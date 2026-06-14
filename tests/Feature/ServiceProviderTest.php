@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+use Deplox\Essentials\Console\HealthCommand;
 use Deplox\Essentials\Database\Commands\DbDropCommand;
 use Deplox\Essentials\Database\Commands\DbMakeCommand;
 use Deplox\Essentials\Database\Commands\DbWaitCommand;
-use Deplox\Essentials\Console\HealthCommand;
+use Deplox\Essentials\Dogma\DogmaManager;
 
 test('essentials config is merged on register', function (): void {
     expect(config('essentials'))->toBeArray()
@@ -31,7 +32,17 @@ test('registered commands are the expected classes', function (): void {
         ->and($all['health'])->toBeInstanceOf(HealthCommand::class);
 });
 
-test('boot applies dogma principles without throwing', function (): void {
-    expect(fn () => $this->app->make(\Deplox\Essentials\Dogma\DogmaManager::class))
-        ->not->toThrow(Throwable::class);
+test('DogmaManager is resolvable from the container', function (): void {
+    expect($this->app->make(DogmaManager::class))->toBeInstanceOf(DogmaManager::class);
+});
+
+test('DogmaManager is a singleton', function (): void {
+    expect($this->app->make(DogmaManager::class))
+        ->toBe($this->app->make(DogmaManager::class));
+});
+
+test('DogmaManager status reflects the live configuration', function (): void {
+    $status = $this->app->make(DogmaManager::class)->status();
+
+    expect($status)->toHaveKeys(['http', 'model', 'database', 'general']);
 });

@@ -4,33 +4,57 @@ declare(strict_types=1);
 
 use Deplox\Essentials\Database\Actions\CreateDatabase;
 use Deplox\Essentials\Database\Actions\DeleteDatabase;
+use Illuminate\Database\Connection;
+use Illuminate\Database\Schema\Builder;
 
-function tempDbPath(): string
+function mockConnection(string $driver = 'mysql'): Connection
 {
-    return sys_get_temp_dir().'/essentials_test_'.uniqid().'.sqlite';
+    $schema = Mockery::mock(Builder::class);
+    $schema->allows('createDatabase')->byDefault();
+    $schema->allows('dropDatabaseIfExists')->byDefault();
+
+    $connection = Mockery::mock(Connection::class);
+    $connection->allows('getSchemaBuilder')->andReturn($schema);
+    $connection->allows('getDriverName')->andReturn($driver);
+
+    return $connection;
 }
 
-test('CreateDatabase creates a new SQLite database file', function (): void {
-    $path = tempDbPath();
+test('CreateDatabase delegates to schema builder with the given name', function (): void {
+    $connection = mockConnection();
+    $connection->getSchemaBuilder()->expects('createDatabase')->with('my_db')->once();
 
-    app(CreateDatabase::class)($path);
-
-    expect(file_exists($path))->toBeTrue();
-
-    @unlink($path);
+    (new CreateDatabase($connection))('my_db');
 });
 
-test('DeleteDatabase removes an existing SQLite database file', function (): void {
-    $path = tempDbPath();
-    touch($path);
+test('DeleteDatabase delegates to schema builder with the given name', function (): void {
+    $connection = mockConnection();
+    $connection->expects('statement')->never();
+    $connection->getSchemaBuilder()->expects('dropDatabaseIfExists')->with('my_db')->once();
 
-    app(DeleteDatabase::class)($path);
-
-    expect(file_exists($path))->toBeFalse();
+    (new DeleteDatabase($connection))('my_db');
 });
 
-test('DeleteDatabase is a no-op when the file does not exist', function (): void {
-    $path = tempDbPath();
+test('DeleteDatabase terminates open pgsql connections before dropping', function (): void {
+    $schema = Mockery::mock(Builder::class);
+    $schema->expects('dropDatabaseIfExists')->with('my_db')->once();
 
-    expect(fn () => app(DeleteDatabase::class)($path))->not->toThrow(Throwable::class);
+    $connection = Mockery::mock(Connection::class);
+    $connection->allows('getSchemaBuilder')->andReturn($schema);
+    $connection->allows('getDriverName')->andReturn('pgsql');
+    $connection->expects('statement')
+        ->withArgs(fn (string $sql, array $bindings): bool => str_contains($sql, 'pg_terminate_backend') && $bindings === ['my_db'])
+        ->once();
+
+    (new DeleteDatabase($connection))('my_db');
+});
+
+test('DeleteDatabase does not terminate connections for non-pgsql drivers', function (): void {
+    foreach (['mysql', 'mariadb', 'sqlite'] as $driver) {
+        $connection = mockConnection($driver);
+        $connection->expects('statement')->never();
+        $connection->getSchemaBuilder()->expects('dropDatabaseIfExists')->with('x')->once();
+
+        (new DeleteDatabase($connection))('x');
+    }
 });

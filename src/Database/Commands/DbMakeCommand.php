@@ -23,9 +23,6 @@ final class DbMakeCommand extends Command implements Isolatable
     protected $signature = 'db:make {name : The database name}
                 {--force : Force the operation to run when in production}';
 
-    /**
-     * Execute the console command.
-     */
     public function handle(CreateDatabase $createDatabase): int
     {
         if ($this->isProhibited() || ! $this->confirmToProceed()) {

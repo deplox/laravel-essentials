@@ -23,9 +23,6 @@ final class DbDropCommand extends Command implements Isolatable
     protected $signature = 'db:drop {name : The database name}
                 {--force : Force the operation to run when in production}';
 
-    /**
-     * Execute the console command.
-     */
     public function handle(DeleteDatabase $deleteDatabase): int
     {
         if ($this->isProhibited() || ! $this->confirmToProceed()) {

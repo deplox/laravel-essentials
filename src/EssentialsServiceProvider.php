@@ -20,6 +20,10 @@ final class EssentialsServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             __DIR__.'/../config/essentials.php', 'essentials'
         );
+
+        $this->app->singleton(DogmaManager::class, fn ($app): DogmaManager => new DogmaManager(
+            EssentialsConfig::fromArray($app->make(\Illuminate\Contracts\Config\Repository::class)->get('essentials'))
+        ));
     }
 
     public function boot(): void
@@ -37,10 +41,6 @@ final class EssentialsServiceProvider extends ServiceProvider
             ]);
         }
 
-        $dogma = new DogmaManager(
-            EssentialsConfig::fromArray($this->app->make(\Illuminate\Contracts\Config\Repository::class)->get('essentials'))
-        );
-
-        $dogma->apply();
+        $this->app->make(DogmaManager::class)->apply();
     }
 }

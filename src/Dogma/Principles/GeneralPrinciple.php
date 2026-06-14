@@ -5,18 +5,14 @@ declare(strict_types=1);
 namespace Deplox\Essentials\Dogma\Principles;
 
 use Carbon\CarbonImmutable;
+use Deplox\Essentials\EssentialsConfig;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\Rules\Password;
-use Deplox\Essentials\EssentialsConfig;
 
 final class GeneralPrinciple
 {
     public static function apply(EssentialsConfig $config): void
     {
-        /**
-         * Uses `CarbonImmutable` instead of mutable date objects across your app.
-         * Prevents unexpected date mutations and improves predictability.
-         */
         if ($config->immutableDates) {
             Date::use(CarbonImmutable::class);
         }

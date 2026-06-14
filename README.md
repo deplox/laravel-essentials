@@ -9,7 +9,6 @@ Laravel ships with sensible-but-permissive defaults. `laravel-essentials` opts a
 - **Dogma** — applies opinionated framework configuration on every boot (immutable dates, strict models, morph-map enforcement, automatic eager loading, password defaults, etc.)
 - **Middleware** — request IDs, security headers, structured request logging, HTTPS redirects, CSP
 - **Database commands** — `db:make`, `db:drop`, `db:wait`, `health` for orchestrated deployments
-- **Throttler** — small wrapper around Laravel's `RateLimiter` for per-key attempt limiting
 
 Everything is opt-out via config — set a key to `false` and the relevant principle stops applying. Nothing is forced on the application beyond what's in `config/essentials.php`.
 
@@ -52,6 +51,7 @@ Default `config/essentials.php`:
 | `default_string_length`              | `int`    | `255`   | `Builder::defaultStringLength()` — migration `string()` column length                        |
 | `default_morph_key_type`             | `string` | `'int'` | `Builder::defaultMorphKeyType()` — `'int'` or `'uuid'`                                       |
 | `log_requests`                       | `bool`   | `false` | Enables the `LogRequests` middleware (the middleware itself must be added to your stack)     |
+| `csp`                                | `array`  | `[]`    | CSP directives consumed by `ContentSecurityPolicy` middleware; empty = no-op                 |
 
 `EssentialsConfig` is a readonly value object that hydrates from the config array via `EssentialsConfig::fromArray()`. The service provider builds it on every boot and hands it to the `DogmaManager`.
 
@@ -67,9 +67,9 @@ The four principles each receive an `EssentialsConfig` and call into framework-l
 
 Applies HTTP-layer defaults:
 
-- `Sleep::fake($fakeSleep)`
+- `Sleep::fake($fakeSleep)` — non-production only
+- `Http::preventStrayRequests($preventStrayRequests)` — non-production only
 - `URL::forceHttps($forceHttps)`
-- `Http::preventStrayRequests($preventStrayRequests)`
 - `Vite::useAggressivePrefetching()` when `aggressive_prefetching` is true
 
 ### `ModelPrinciple`
@@ -112,11 +112,11 @@ dump($dogma->status());
 // ]
 ```
 
-Useful for `/health` endpoints or admin dashboards that need to confirm the live application is running with the expected hardening.
+`DogmaManager` is registered as a singleton so `app(DogmaManager::class)` always returns the same instance that was applied on boot. Useful for `/health` endpoints or admin dashboards that need to confirm the live application is running with the expected hardening.
 
 ### Adding your own principle
 
-Extend `Dogma\Principles\Principle` and call its `apply()` from your own service provider, or fork `DogmaManager`. Principles are intentionally not registered through a registry — each one is an explicit static call site so the boot path remains greppable.
+Create a class with `apply(EssentialsConfig $config): void` and `status(): array` static methods. Call `apply()` from your own service provider after the package boots. Principles are not registered through a registry — each one is an explicit static call site so the boot path remains greppable.
 
 ---
 
@@ -215,38 +215,6 @@ The actual schema work lives in `Database\Actions\CreateDatabase` and `Database\
 
 ---
 
-## Throttler
-
-A small fluent wrapper around `Illuminate\Cache\RateLimiter`. Lives at `Utilities\Throttler`.
-
-```php
-use Deplox\Essentials\Utilities\Throttler;
-
-$throttler = new Throttler('login:'.$ip, limit: 5, wait: 60);
-
-$result = $throttler->attempt(fn () => Auth::attempt($credentials));
-
-if ($result === false) {
-    abort(429, "Try again in {$throttler->availableIn()}s");
-}
-```
-
-Public surface:
-
-| Method                                       | Returns | Effect                                                           |
-| -------------------------------------------- | ------- | ---------------------------------------------------------------- |
-| `attempt(Closure $callback)`                 | `mixed` | Runs callback and counts a hit unless already over the limit      |
-| `hit()` / `increment(int)` / `decrement(int)` | `int`   | Adjust counter manually                                          |
-| `attempts()`                                 | `int`   | Current count                                                    |
-| `remaining()`                                | `int`   | Tries left before lockout                                        |
-| `tooManyAttempts()`                          | `bool`  | Already over the limit                                           |
-| `clear()` / `resetAttempts()`                | —       | Wipe counter (and lockout for `clear`)                           |
-| `availableIn()`                              | `int`   | Seconds until next attempt allowed                               |
-
-The constructor's `$wait` accepts `int` seconds, a `DateInterval`, or a `DateTimeInterface` (treated as an absolute reset time).
-
----
-
 ## Testing patterns
 
 Pest 4. Tests in `tests/Feature/`:
@@ -254,7 +222,7 @@ Pest 4. Tests in `tests/Feature/`:
 - **Middleware** — construct a `Request`, call `$middleware->handle($request, fn ($r) => new Response)`, assert headers / `Context` state / log spies.
 - **Commands** — `$this->artisan(DbWaitCommand::class, [...])->assertSuccessful()` and friends; the package patterns also assert `Isolatable`, `Confirmable`, and `Prohibitable` interfaces are present.
 - **Dogma** — a `dogmaConfig(array $overrides = [])` helper builds an `EssentialsConfig` per test; assert `DogmaManager::status()` reflects the overrides.
-- **Throttler** — exercises the full state machine (`hit` → `tooManyAttempts` → `availableIn` → `clear` → `resetAttempts`).
+- **Actions** — instantiate directly with a `Mockery::mock(Connection::class)` to verify the correct schema-builder methods are called and that driver-specific logic (e.g., pgsql connection termination) fires only for the right drivers.
 
 Several principles touch global state. The tests use `beforeEach()`/`afterEach()` blocks to reset framework defaults (e.g., `Model::unguard(false)` after a test that flipped it).
 
@@ -280,16 +248,13 @@ src/
 │       ├── DatabasePrinciple.php
 │       ├── GeneralPrinciple.php
 │       ├── HttpPrinciple.php
-│       ├── ModelPrinciple.php
-│       └── Principle.php           # abstract base
+│       └── ModelPrinciple.php
 ├── Middlewares/
 │   ├── ContentSecurityPolicy.php
 │   ├── ForceHttps.php
 │   ├── LogRequests.php
 │   ├── UseHeaderGuards.php
 │   └── UseRequestId.php
-├── Utilities/
-│   └── Throttler.php
 ├── EssentialsConfig.php
 └── EssentialsServiceProvider.php
 config/

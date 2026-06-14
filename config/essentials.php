@@ -26,4 +26,22 @@ return [
     | request with method, path, status, and duration_ms. Off by default.
     */
     'log_requests' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Content-Security-Policy directives
+    |--------------------------------------------------------------------------
+    |
+    | Consumed by the ContentSecurityPolicy middleware. Each key is a CSP
+    | directive and its value is an array of sources. An empty or absent
+    | array means the middleware is a no-op — useful for incremental adoption.
+    |
+    | Example:
+    |   'csp' => [
+    |       'default-src' => ["'self'"],
+    |       'script-src'  => ["'self'", 'https://cdn.example.com'],
+    |       'style-src'   => ["'self'", "'unsafe-inline'"],
+    |   ],
+    */
+    'csp' => [],
 ];

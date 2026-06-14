@@ -14,20 +14,9 @@ final class DatabasePrinciple
 {
     public static function apply(EssentialsConfig $config): void
     {
-        /**
-         * Set the default string length for migrations.
-         */
         Builder::defaultStringLength($config->defaultStringLength);
-
-        /**
-         * Set the default morph key type for migrations.
-         */
         Builder::defaultMorphKeyType($config->defaultMorphKeyType);
-
-        /**
-         * Blocks potentially destructive Artisan commands in production (e.g., `migrate:fresh`).
-         * Prevents accidental data loss and adds a safety net in sensitive environments.
-         */
+        // double-gate: respects the config flag AND only enforces in production
         DB::prohibitDestructiveCommands($config->prohibitDestructiveCommands && app()->isProduction());
     }
 

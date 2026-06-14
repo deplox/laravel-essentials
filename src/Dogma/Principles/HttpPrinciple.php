@@ -16,22 +16,14 @@ final class HttpPrinciple
 {
     public static function apply(EssentialsConfig $config): void
     {
-        // Sleep::fake and preventStrayRequests are test utilities — never apply in production.
+        // test utilities — never apply in production even when config requests it
         if (! app()->isProduction()) {
             Sleep::fake($config->fakeSleep);
             Http::preventStrayRequests($config->preventStrayRequests);
         }
 
-        /**
-         * Forces all generated URLs to use `https://`.
-         * Ensures all traffic uses secure connections by default.
-         */
         URL::forceHttps($config->forceHttps);
 
-        /**
-         * Configures Laravel Vite to preload assets more aggressively.
-         * Improves front-end load times and user experience.
-         */
         if ($config->aggressivePrefetching) {
             Vite::useAggressivePrefetching();
         }
