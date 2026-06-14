@@ -43,8 +43,9 @@ final class HealthCommand extends Command
             try {
                 $ok = (bool) $check();
             } catch (Throwable $e) {
-                $ok = false;
                 $this->components->error(sprintf('%s: %s', $name, $e->getMessage()));
+                $allOk = false;
+                continue;
             }
 
             $allOk = $allOk && $ok;

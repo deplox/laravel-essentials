@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Deplox\Essentials\Database\Commands;
 
+use Deplox\Essentials\Database\Actions\CreateDatabase;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait as Confirmable;
 use Illuminate\Console\Prohibitable;
 use Illuminate\Contracts\Console\Isolatable;
-use Deplox\Essentials\Database\Actions\CreateDatabase;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 #[AsCommand(

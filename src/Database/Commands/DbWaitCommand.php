@@ -6,6 +6,7 @@ namespace Deplox\Essentials\Database\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Database\ConnectionResolverInterface;
+use Illuminate\Support\Sleep;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Throwable;
 
@@ -47,7 +48,7 @@ final class DbWaitCommand extends Command
                 ));
 
                 if ($delay > 0) {
-                    sleep($delay);
+                    Sleep::for($delay)->seconds();
                 }
             }
         }

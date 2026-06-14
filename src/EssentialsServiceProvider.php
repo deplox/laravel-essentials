@@ -22,9 +22,6 @@ final class EssentialsServiceProvider extends ServiceProvider
         );
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {

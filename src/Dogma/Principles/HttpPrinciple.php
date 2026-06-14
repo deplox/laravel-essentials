@@ -47,7 +47,7 @@ final class HttpPrinciple
 
         return [
             'fakeSleep' => $reflectionSleep->getProperty('fake')->getValue(),
-            'forceHttps' => URL::getRequest()->getScheme() === 'https',
+            'forceHttps' => parse_url(URL::to('/'), PHP_URL_SCHEME) === 'https',
             'aggressivePrefetching' => $prefetchStrategy === 'aggressive',
             'preventStrayRequests' => Http::preventingStrayRequests(),
         ];
