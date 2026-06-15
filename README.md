@@ -47,19 +47,24 @@ Default `config/essentials.php`:
 | `automatic_eager_load_relationships` | `bool`   | `true`  | `Model::automaticallyEagerLoadRelationships()` — defeats N+1 by default                      |
 | `require_morph_map`                  | `bool`   | `true`  | `Relation::requireMorphMap()` — class names must be aliased before being persisted           |
 | `prohibit_destructive_commands`      | `bool`   | `true`  | `DB::prohibitDestructiveCommands()` in production (blocks `migrate:fresh`, `db:wipe`, etc.)  |
-| `set_default_passwords`              | `bool`   | `true`  | `Password::defaults(...)` — min 8, mixed-case + uncompromised in production                  |
-| `default_string_length`              | `int`    | `255`   | `Builder::defaultStringLength()` — migration `string()` column length                        |
+| `set_default_passwords`              | `bool`   | `true`  | `Password::defaults(...)` — min 8 / max `default_string_length`, mixed-case + uncompromised in production |
+| `default_string_length`              | `int`    | `255`   | `Builder::defaultStringLength()` — migration `string()` column length; also caps passwords   |
 | `default_morph_key_type`             | `string` | `'int'` | `Builder::defaultMorphKeyType()` — `'int'` or `'uuid'`                                       |
-| `log_requests`                       | `bool`   | `false` | Enables the `LogRequests` middleware (the middleware itself must be added to your stack)     |
-| `csp`                                | `array`  | `[]`    | CSP directives consumed by `ContentSecurityPolicy` middleware; empty = no-op                 |
 
-`EssentialsConfig` is a readonly value object that hydrates from the config array via `EssentialsConfig::fromArray()`. The service provider builds it on every boot and hands it to the `DogmaManager`.
+The following keys are also in `config/essentials.php` but are read directly by the middleware rather than through `EssentialsConfig`:
+
+| Key            | Type    | Default | Effect                                                                                    |
+| -------------- | ------- | ------- | ----------------------------------------------------------------------------------------- |
+| `log_requests` | `bool`  | `false` | Enables the `LogRequests` middleware (the middleware itself must be added to your stack)  |
+| `csp`          | `array` | `[]`    | CSP directives consumed by `ContentSecurityPolicy` middleware; empty = no-op              |
+
+`EssentialsConfig` is a readonly value object that hydrates from the config array via `EssentialsConfig::fromArray()`. The service provider builds it once as a singleton and hands it to the `DogmaManager`.
 
 ---
 
 ## Dogma — opinionated framework configuration
 
-`Dogma\DogmaManager` applies the configuration to the framework. It runs unconditionally in `EssentialsServiceProvider::boot()`, so every request and every Artisan command starts from the same baseline.
+`Dogma\DogmaManager` applies the configuration to the framework. It runs unconditionally in `EssentialsServiceProvider::boot()` — on every HTTP request and every Artisan command — so the entire application starts from the same baseline.
 
 The four principles each receive an `EssentialsConfig` and call into framework-level static configuration. Each principle exposes a `status(): array` for diagnostic introspection.
 
@@ -95,8 +100,8 @@ Applies cross-cutting defaults:
 
 - `Date::use(CarbonImmutable::class)` when `immutable_dates`
 - `Password::defaults(...)` when `set_default_passwords`:
-  - Development: `min(8)`
-  - Production: `min(8)->mixedCase()->uncompromised()` — last check hits the haveibeenpwned k-anonymity API
+  - Development: `min(8)->max($defaultStringLength)`
+  - Production: `min(8)->max($defaultStringLength)->mixedCase()->uncompromised()` — last check hits the haveibeenpwned k-anonymity API
 
 ### Status snapshot
 
@@ -105,10 +110,29 @@ $dogma = app(DogmaManager::class);
 
 dump($dogma->status());
 // [
-//   'http'     => ['fakeSleep' => true, 'forceHttps' => true, ...],
-//   'model'    => ['preventsLazyLoading' => true, ...],
-//   'database' => ['defaultStringLength' => 255, ...],
-//   'general'  => ['immutableDates' => true, 'defaultPasswordRules' => true],
+//   'http' => [
+//     'fakeSleep'             => true,
+//     'forceHttps'            => true,
+//     'aggressivePrefetching' => true,
+//     'preventStrayRequests'  => true,
+//   ],
+//   'model' => [
+//     'unguarded'                          => false,
+//     'preventsLazyLoading'                => true,
+//     'preventsSilentlyDiscardingAttributes' => true,
+//     'preventsAccessingMissingAttributes' => true,
+//     'automaticallyEagerLoadRelationships'=> true,
+//     'requireMorphMap'                    => true,
+//   ],
+//   'database' => [
+//     'defaultStringLength'        => 255,
+//     'defaultMorphKeyType'        => 'int',
+//     'prohibitsDestructiveCommands' => true,
+//   ],
+//   'general' => [
+//     'immutableDates'      => true,
+//     'defaultPasswordRules'=> true,
+//   ],
 // ]
 ```
 
@@ -144,7 +168,7 @@ Sets three security headers on every response:
 | --------------------------- | ------------------------------------------------------ |
 | `X-Frame-Options`           | `SAMEORIGIN`                                           |
 | `X-Content-Type-Options`    | `nosniff`                                              |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` (1 yr) |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains; preload` (1 yr)  |
 
 ### `LogRequests`
 
@@ -190,15 +214,15 @@ Registered automatically by the service provider when running in console.
 php artisan health
 ```
 
-Probes the database, cache, and queue connections. Each check logs `INFO` on success or `ERROR` on failure. The command's exit code is `0` if everything passes, `1` otherwise — wire it into your container health probe or deployment smoke test.
+Probes the database, cache, and queue connections. Each check prints `info` or `error` output to the console. The command's exit code is `0` if everything passes, `1` otherwise — wire it into your container health probe or deployment smoke test.
 
 ### `db:wait`
 
 ```bash
-php artisan db:wait --connection=default --tries=30 --delay=1
+php artisan db:wait --connection=mysql --tries=30 --delay=1
 ```
 
-Polls the database connection until it answers or `--tries` is exhausted. Use it as a startup-ordering primitive in Docker / Kubernetes so the application doesn't hard-fail before its database is ready.
+Polls the database connection until it answers or `--tries` is exhausted. Omit `--connection` to use the application's default connection. Use it as a startup-ordering primitive in Docker / Kubernetes so the application doesn't hard-fail before its database is ready.
 
 ### `db:make` / `db:drop`
 
