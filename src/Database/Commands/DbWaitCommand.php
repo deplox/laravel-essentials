@@ -22,13 +22,14 @@ final class DbWaitCommand extends Command
 
     public function handle(ConnectionResolverInterface $resolver): int
     {
-        $connection = $this->option('connection');
+        $connectionName = $this->option('connection');
+        $connection = is_string($connectionName) ? $connectionName : null;
         $tries = max(1, (int) $this->option('tries'));
         $delay = max(0, (int) $this->option('delay'));
 
         for ($attempt = 1; $attempt <= $tries; $attempt++) {
             try {
-                $resolver->connection($connection)->getPdo();
+                $resolver->connection($connection)->select('select 1');
 
                 $this->components->info('Database is reachable.');
 

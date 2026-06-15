@@ -29,6 +29,7 @@ final class HttpPrinciple
         }
     }
 
+    /** @return array<string, mixed> */
     public static function status(): array
     {
         $reflectionSleep = new ReflectionClass(Sleep::class);

@@ -29,7 +29,8 @@ final class DbMakeCommand extends Command implements Isolatable
             return Command::FAILURE;
         }
 
-        $createDatabase($this->argument('name'));
+        $name = $this->argument('name');
+        $createDatabase(is_string($name) ? $name : '');
 
         $this->components->info('Database created successfully.');
 

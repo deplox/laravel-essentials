@@ -24,6 +24,7 @@ final readonly class DogmaManager
         GeneralPrinciple::apply($this->config);
     }
 
+    /** @return array<string, array<string, mixed>> */
     public function status(): array
     {
         return [

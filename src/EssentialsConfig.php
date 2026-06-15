@@ -6,6 +6,7 @@ namespace Deplox\Essentials;
 
 use Illuminate\Contracts\Support\Arrayable;
 
+/** @implements Arrayable<string, mixed> */
 final readonly class EssentialsConfig implements Arrayable
 {
     public function __construct(
@@ -24,6 +25,7 @@ final readonly class EssentialsConfig implements Arrayable
         public string $defaultMorphKeyType,
     ) {}
 
+    /** @param array<string, mixed>|null $data */
     public static function fromArray(?array $data): self
     {
         return new self(

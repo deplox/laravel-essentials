@@ -28,6 +28,7 @@ final class GeneralPrinciple
         }
     }
 
+    /** @return array<string, mixed> */
     public static function status(): array
     {
         return [

@@ -14,12 +14,13 @@ final class DatabasePrinciple
 {
     public static function apply(EssentialsConfig $config): void
     {
-        Builder::defaultStringLength($config->defaultStringLength);
+        Builder::defaultStringLength(max(0, $config->defaultStringLength));
         Builder::defaultMorphKeyType($config->defaultMorphKeyType);
         // double-gate: respects the config flag AND only enforces in production
         DB::prohibitDestructiveCommands($config->prohibitDestructiveCommands && app()->isProduction());
     }
 
+    /** @return array<string, mixed> */
     public static function status(): array
     {
         $prohibitedProperty = (new ReflectionClass(WipeCommand::class))->getProperty('prohibitedFromRunning');

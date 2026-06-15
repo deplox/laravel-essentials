@@ -23,7 +23,7 @@ final class HealthCommand extends Command
         QueueManager $queue,
     ): int {
         $checks = [
-            'database' => fn (): bool => $db->connection()->getPdo() !== null,
+            'database' => fn (): bool => (bool) $db->connection()->statement('select 1'),
             'cache' => function () use ($cache): bool {
                 $key = '__health__';
                 $cache->put($key, '1', 5);

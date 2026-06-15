@@ -19,6 +19,7 @@ final class ModelPrinciple
         Relation::requireMorphMap($config->requireMorphMap);
     }
 
+    /** @return array<string, mixed> */
     public static function status(): array
     {
         return [

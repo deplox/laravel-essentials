@@ -29,7 +29,8 @@ final class DbDropCommand extends Command implements Isolatable
             return Command::FAILURE;
         }
 
-        $deleteDatabase($this->argument('name'));
+        $name = $this->argument('name');
+        $deleteDatabase(is_string($name) ? $name : '');
 
         $this->components->info('Database dropped successfully.');
 
